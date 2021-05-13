@@ -1,0 +1,72 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gitea2
+
+---
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: gitea-ingress
+  namespace: gitea2
+spec:
+  rules:
+  - host: suraj18.com
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: gitea-service
+          servicePort: 80
+        
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gitea-deploy
+  namespace: gitea2
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: gitea-pod
+  template:
+    metadata:
+      labels:
+        app: gitea-pod
+    spec:
+      containers:
+      - name: gitea-container
+        image: gitea/gitea:linux-amd64
+        ports:
+        - containerPort: 80
+        env:
+        - name: USER_UID
+          value: "1000"
+        - name: USER_GID
+          value: "1000"
+        volumeMounts:
+        - name: gitea-storage
+          mountPath: /data
+      volumes:
+      - name: gitea-storage
+        emptyDir: {}
+      restartPolicy: Always
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: gitea-service
+  namespace: gitea2
+spec:
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+    name: http
+  selector:
+    app: gitea-pod
